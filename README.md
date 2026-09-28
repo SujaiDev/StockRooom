@@ -9,7 +9,7 @@ Stockroom is an inventory management app for warehouse teams. Its Next.js screen
 	<img alt="React 19" src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white">
 	<img alt="Java 17" src="https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white">
 	<img alt="Spring Boot 3.5" src="https://img.shields.io/badge/Spring%20Boot-3.5.6-6DB33F?logo=springboot&logoColor=white">
-	<img alt="PostgreSQL configuration" src="https://img.shields.io/badge/PostgreSQL-configured-4169E1?logo=postgresql&logoColor=white">
+	<img alt="MySQL configuration" src="https://img.shields.io/badge/MySQL-configured-4479A1?logo=mysql&logoColor=white">
 </p>
 
 ## Product Preview
@@ -53,11 +53,11 @@ Use **Login ID** `admin` and **Password** `1234`. When the backend is reachable,
 flowchart LR
 		operator[Warehouse operator] --> ui[Next.js dashboard]
 		ui -->|JWT bearer requests| api[Spring Boot REST API]
-		api -->|JPA and Flyway| db[(PostgreSQL)]
+		api -->|JPA and Flyway| db[(MySQL)]
 		api -. local demo profile .-> h2[(H2 in-memory database)]
 ```
 
-The codebase is split into a TypeScript frontend and a Java backend. PostgreSQL schema is versioned with Flyway; stock receipts, deliveries, transfers, and adjustments are recorded through a transactional stock ledger. Local demo runs can use the H2 test database.
+The codebase is split into a TypeScript frontend and a Java backend. MySQL schema is versioned with Flyway; stock receipts, deliveries, transfers, and adjustments are recorded through a transactional stock ledger. Local demo runs can use the H2 test database.
 
 ## Technology
 
@@ -66,7 +66,7 @@ The codebase is split into a TypeScript frontend and a Java backend. PostgreSQL 
 | Web | Next.js 16, React 19, TypeScript |
 | UI | Responsive CSS, Lucide icons |
 | API | Java 17, Spring Boot 3.5, Spring Web |
-| Persistence | Spring Data JPA, Flyway migrations, PostgreSQL |
+| Persistence | Spring Data JPA, Flyway migrations, MySQL |
 | Authentication | Spring Security, BCrypt, signed JWT bearer tokens |
 | Backend test/demo | Gradle, Spring Boot Test, H2 in-memory database |
 
@@ -91,7 +91,7 @@ For exact methods and request bodies, import [the Postman collection](backend/po
 
 - Node.js 20.19+ or 22.13+ and npm
 - Java 17 or newer; the Gradle wrapper downloads the pinned Gradle distribution
-- PostgreSQL for the normal API run, or use the H2-backed demo/test runtime
+- MySQL for the normal API run, or use the H2-backed demo/test runtime
 
 ### Frontend
 
@@ -105,7 +105,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Backend
 
-For the normal API run, create a PostgreSQL database named `inventory_management`, configure credentials, and start the backend:
+For the normal API run, create a MySQL database named `inventory_management` (or let the connection URL create it automatically), configure credentials, and start the backend:
 
 ```powershell
 cd backend
@@ -115,14 +115,14 @@ cd backend
 The API listens on port `8080`. Configure a stable JWT signing secret and your local database credentials:
 
 ```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/inventory_management"
-$env:DB_USERNAME = "postgres"
-$env:DB_PASSWORD = "postgres"
+$env:DB_URL = "jdbc:mysql://localhost:3306/inventory_management?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "root"
 $env:JWT_SECRET = "replace-with-a-random-secret-at-least-32-characters"
 .\gradlew.bat bootRun
 ```
 
-For an isolated local demo that needs no PostgreSQL credentials, run `.\gradlew.bat bootTestRun` from `backend/`. It uses an in-memory H2 database, so inventory data is reset when the API process stops. The built-in administrator has no database user row, so OTP password reset is not available for that account. Configure persistent users and email delivery before enabling signup or password reset.
+For an isolated local demo that needs no MySQL credentials, run `.\gradlew.bat bootTestRun` from `backend/`. It uses an in-memory H2 database, so inventory data is reset when the API process stops. The built-in administrator has no database user row, so OTP password reset is not available for that account. Configure persistent users and email delivery before enabling signup or password reset.
 
 Check the API health endpoint:
 
@@ -176,7 +176,7 @@ Inventory-Management/
 └── backend/
 	├── postman/                # Importable collection and local environment
 	└── src/
-		├── main/java/com/inventorymanagement/
+		├── main/java/com/stockroom/
 		│   ├── config/
 		│   ├── controller/
 		│   ├── dto/
