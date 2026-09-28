@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:inventory_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+app:
+  jwt:
+    secret: VGhpc0lzQVRlc3RPbmx5U2VjcmV0S2V5Rm9ySlVUUHJvamVjdA==
+    expiration-ms: 86400000
+  auth:
+    otp:
+      expose-code: true
+  sql:
+    init:
+      mode: never

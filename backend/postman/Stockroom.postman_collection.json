@@ -1,0 +1,197 @@
+{
+  "info": {
+    "_postman_id": "6af2aafa-4059-4a76-87f8-2019507472b1",
+    "name": "Stockroom Inventory API",
+    "description": "End-to-end API requests for Stockroom. The local auth flow uses the built-in single-user demo account (admin/1234). Signup/profile changes are expected conflicts; password reset is unavailable for this non-persisted account until user storage and email delivery are configured.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "admin" },
+    { "key": "password", "value": "1234" },
+    { "key": "categoryId", "value": "" },
+    { "key": "warehouseId", "value": "" },
+    { "key": "locationId", "value": "" },
+    { "key": "secondLocationId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "receiptId", "value": "" },
+    { "key": "receiptCancelId", "value": "" },
+    { "key": "deliveryId", "value": "" },
+    { "key": "deliveryCancelId", "value": "" },
+    { "key": "transferId", "value": "" },
+    { "key": "transferCancelId", "value": "" },
+    { "key": "adjustmentId", "value": "" },
+    { "key": "adjustmentCancelId", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["if (!pm.collectionVariables.get('timestamp')) pm.collectionVariables.set('timestamp', String(Date.now()).slice(-6));"]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('API returns a JSON response', function () { pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json'); });",
+          "pm.test('No unexpected server error', function () { pm.expect(pm.response.code).to.be.below(500); });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "GET health", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/health" } }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST signup disabled until database setup",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Signup is intentionally disabled for the single-user demo', function () { pm.response.to.have.status(409); });"] } }
+          ],
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Another User\",\"email\":\"another@example.test\",\"password\":\"StockroomDemo123!\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/signup" }
+        },
+        {
+          "name": "POST login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login returns a bearer token', function () { pm.response.to.have.status(200); pm.collectionVariables.set('token', pm.response.json().data.token); });"] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+        },
+        { "name": "GET current user", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" } },
+        { "name": "PUT update current profile (fixed demo profile)", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Built-in demo profile is fixed', function () { pm.response.to.have.status(409); });"] } }], "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Changed Demo Manager\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/me" } },
+        {
+          "name": "POST request password-reset OTP (no persisted admin account)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('OTP request does not reveal account existence', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().data.debug_otp).to.not.exist; });"] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"admin@example.test\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/otp/request" }
+        },
+        { "name": "POST verify OTP unavailable for built-in account", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reset requires a persisted user and delivered OTP', function () { pm.response.to.have.status(401); });"] } }], "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"admin@example.test\",\"otp\":\"000000\",\"new_password\":\"StockroomReset123!\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/otp/verify" } }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        { "name": "GET categories", "request": { "method": "GET", "url": "{{baseUrl}}/api/categories" } },
+        {
+          "name": "POST create category",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Category created', function () { pm.response.to.have.status(201); pm.collectionVariables.set('categoryId', pm.response.json().data.id); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Demo Supplies {{timestamp}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/categories" }
+        },
+        { "name": "GET category by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/categories/{{categoryId}}" } }
+      ]
+    },
+    {
+      "name": "Warehouses and locations",
+      "item": [
+        { "name": "GET warehouses", "request": { "method": "GET", "url": "{{baseUrl}}/api/warehouses" } },
+        {
+          "name": "POST create warehouse",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Warehouse created', function () { pm.response.to.have.status(201); pm.collectionVariables.set('warehouseId', pm.response.json().data.id); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Demo Warehouse\",\"code\":\"DEMO-{{timestamp}}\",\"address\":\"Local demo\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/warehouses" }
+        },
+        { "name": "GET warehouse by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/warehouses/{{warehouseId}}" } },
+        {
+          "name": "POST create primary location",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (!pm.collectionVariables.get('timestamp')) pm.collectionVariables.set('timestamp', String(Date.now()).slice(-6));"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Location created', function () { pm.response.to.have.status(201); pm.collectionVariables.set('locationId', pm.response.json().data.id); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Pick Face\",\"code\":\"PICK-{{timestamp}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/warehouses/{{warehouseId}}/locations" }
+        },
+        {
+          "name": "POST create second location",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"warehouse_id\":{{warehouseId}},\"name\":\"Reserve Rack\",\"code\":\"RESERVE-{{timestamp}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/locations" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Second location created', function () { pm.response.to.have.status(201); pm.collectionVariables.set('secondLocationId', pm.response.json().data.id); });"] } }]
+        },
+        { "name": "GET locations", "request": { "method": "GET", "url": "{{baseUrl}}/api/locations?warehouse_id={{warehouseId}}" } }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "POST create product",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (!pm.collectionVariables.get('timestamp')) pm.collectionVariables.set('timestamp', String(Date.now()).slice(-6));"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Product created', function () { pm.response.to.have.status(201); pm.collectionVariables.set('productId', pm.response.json().data.id); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Demo Shipping Box\",\"sku\":\"DEMO-BOX-{{timestamp}}\",\"category_id\":{{categoryId}},\"unit_of_measure\":\"each\",\"per_unit_cost\":2.50,\"reorder_point\":5,\"reorder_qty\":20}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/products" }
+        },
+        { "name": "GET products", "request": { "method": "GET", "url": "{{baseUrl}}/api/products?page=1&limit=20" } },
+        { "name": "GET products low stock", "request": { "method": "GET", "url": "{{baseUrl}}/api/products?low_stock=true" } },
+        { "name": "GET product by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/products/{{productId}}" } },
+        { "name": "PUT update product", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Demo Shipping Box Updated\",\"sku\":\"DEMO-BOX-{{timestamp}}\",\"category_id\":{{categoryId}},\"unit_of_measure\":\"each\",\"per_unit_cost\":2.75,\"reorder_point\":5,\"reorder_qty\":20}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/products/{{productId}}" } },
+        { "name": "GET product ledger", "request": { "method": "GET", "url": "{{baseUrl}}/api/products/{{productId}}/ledger?page=1&limit=20" } }
+      ]
+    },
+    {
+      "name": "Stock ledger",
+      "item": [
+        { "name": "POST direct receipt movement", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"product_id\":{{productId}},\"location_to_id\":{{locationId}},\"quantity\":50,\"movement_type\":\"RECEIPT\",\"reference_doc_type\":\"POSTMAN_DEMO\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/ledger/movement" } },
+        { "name": "GET filtered ledger", "request": { "method": "GET", "url": "{{baseUrl}}/api/ledger?product_id={{productId}}&movement_type=RECEIPT&page=1&limit=20" } }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "item": [
+        { "name": "POST create receipt", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('receiptId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Postman demo receipt\",\"lines\":[{\"product_id\":{{productId}},\"location_to_id\":{{locationId}},\"quantity\":50}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/receipts" } },
+        { "name": "GET receipts", "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts?page=1&limit=20" } },
+        { "name": "GET receipt by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts/{{receiptId}}" } },
+        { "name": "PUT validate receipt", "request": { "method": "PUT", "url": "{{baseUrl}}/api/receipts/{{receiptId}}/validate" } },
+        { "name": "POST create receipt draft for cancellation", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('receiptCancelId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Draft cancellation check\",\"lines\":[{\"product_id\":{{productId}},\"location_to_id\":{{locationId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/receipts" } },
+        { "name": "POST cancel receipt draft", "request": { "method": "POST", "url": "{{baseUrl}}/api/receipts/{{receiptCancelId}}/cancel" } }
+      ]
+    },
+    {
+      "name": "Deliveries",
+      "item": [
+        { "name": "POST create delivery", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('deliveryId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Postman demo delivery\",\"lines\":[{\"product_id\":{{productId}},\"location_from_id\":{{locationId}},\"quantity\":2}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/deliveries" } },
+        { "name": "GET deliveries", "request": { "method": "GET", "url": "{{baseUrl}}/api/deliveries?page=1&limit=20" } },
+        { "name": "GET delivery by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/deliveries/{{deliveryId}}" } },
+        { "name": "PUT validate delivery", "request": { "method": "PUT", "url": "{{baseUrl}}/api/deliveries/{{deliveryId}}/validate" } },
+        { "name": "POST create delivery draft for cancellation", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('deliveryCancelId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Draft cancellation check\",\"lines\":[{\"product_id\":{{productId}},\"location_from_id\":{{locationId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/deliveries" } },
+        { "name": "POST cancel delivery draft", "request": { "method": "POST", "url": "{{baseUrl}}/api/deliveries/{{deliveryCancelId}}/cancel" } }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        { "name": "POST create transfer", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('transferId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Postman demo transfer\",\"lines\":[{\"product_id\":{{productId}},\"location_from_id\":{{locationId}},\"location_to_id\":{{secondLocationId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/transfers" } },
+        { "name": "GET transfers", "request": { "method": "GET", "url": "{{baseUrl}}/api/transfers?page=1&limit=20" } },
+        { "name": "GET transfer by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/transfers/{{transferId}}" } },
+        { "name": "POST validate transfer", "request": { "method": "POST", "url": "{{baseUrl}}/api/transfers/{{transferId}}/validate" } },
+        { "name": "POST create transfer draft for cancellation", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('transferCancelId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Draft cancellation check\",\"lines\":[{\"product_id\":{{productId}},\"location_from_id\":{{locationId}},\"location_to_id\":{{secondLocationId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/transfers" } },
+        { "name": "POST cancel transfer draft", "request": { "method": "POST", "url": "{{baseUrl}}/api/transfers/{{transferCancelId}}/cancel" } }
+      ]
+    },
+    {
+      "name": "Adjustments",
+      "item": [
+        { "name": "POST create adjustment gain", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('adjustmentId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Postman demo positive adjustment\",\"lines\":[{\"product_id\":{{productId}},\"location_to_id\":{{locationId}},\"quantity\":3}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/adjustments" } },
+        { "name": "GET adjustments", "request": { "method": "GET", "url": "{{baseUrl}}/api/adjustments?page=1&limit=20" } },
+        { "name": "GET adjustment by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/adjustments/{{adjustmentId}}" } },
+        { "name": "POST validate adjustment", "request": { "method": "POST", "url": "{{baseUrl}}/api/adjustments/{{adjustmentId}}/validate" } },
+        { "name": "POST create adjustment draft for cancellation", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('adjustmentCancelId', pm.response.json().data.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"note\":\"Draft cancellation check\",\"lines\":[{\"product_id\":{{productId}},\"location_to_id\":{{locationId}},\"quantity\":1}]}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/adjustments" } },
+        { "name": "POST cancel adjustment draft", "request": { "method": "POST", "url": "{{baseUrl}}/api/adjustments/{{adjustmentCancelId}}/cancel" } }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "GET dashboard summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/summary" } },
+        { "name": "GET dashboard documents", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/documents?page=1&limit=20" } }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        { "name": "DELETE demo product (run last)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/products/{{productId}}" } }
+      ]
+    }
+  ]
+}
